@@ -3,7 +3,7 @@
 A static website for a season-long AFL ladder-prediction competition between friends.
 
 - **Scoring:** for each club, the gap between your predicted position and its actual position. Add up all 18 gaps and the lowest total wins.
-- **Live AFL ladder:** results come from the free [Squiggle API](https://api.squiggle.com.au), so nobody has to enter scores.
+- **AFL ladder:** results come from the free [Squiggle API](https://api.squiggle.com.au), fetched every 15 minutes in season by a GitHub Action, so nobody has to enter scores.
 - **Week by week:** pick any round to see the standings as at that point. The Season Race chart tracks everyone's totals.
 - **Password-protected picks:** each player logs in with their own username and password and can change only their own ladder until Round 1 starts. The lock is enforced by the database, not just by the page.
 - **Past seasons:** each season lives in its own `data/<year>.json` file.
@@ -14,7 +14,9 @@ css/styles.css      styling (light + dark mode)
 js/config.js        ← the settings you edit
 js/app.js           page logic
 js/scoring.js       ladder + scoring maths
-js/squiggle.js      AFL results feed (cached)
+js/results.js       loads data/games-<year>.json
+scripts/fetch-results.mjs   downloads results from Squiggle (run by GitHub Actions)
+.github/workflows/  the scheduled results update + Pages deploy
 js/backend.js       Firebase logins + stored picks
 js/teams.js         club names, aliases, colours
 data/2027.json      starting predictions for 2027
@@ -27,11 +29,23 @@ firestore.rules     database security rules
 ## 1. Put it on GitHub Pages (about 5 min)
 
 1. Create a new **public** repository on GitHub, e.g. `ladder-prophets`.
-2. Upload every file in this folder, keeping the folder structure (drag and drop works on the repo page via **Add file → Upload files**).
-3. Go to **Settings → Pages**. Under *Build and deployment*, choose **Deploy from a branch**, branch `main`, folder `/ (root)`, then **Save**.
-4. After a minute the site is live at `https://<your-username>.github.io/ladder-prophets/`.
+2. Upload every file in this folder, keeping the folder structure, **including the hidden `.github` folder** (it holds the workflow that fetches results).
+   - Drag and drop works via **Add file → Upload files**. On a Mac, press `Cmd+Shift+.` in Finder to show hidden folders so you can drag `.github` too.
+   - If it doesn't go up, create the file by hand: **Add file → Create new file**, name it `.github/workflows/update-results.yml`, and paste in the contents.
+3. Go to **Settings → Pages → Build and deployment → Source** and choose **GitHub Actions** (not "Deploy from a branch").
+4. Go to the **Actions** tab, choose **Update results and publish site**, then click **Run workflow**. After about a minute the site is live at `https://<your-username>.github.io/ladder-prophets/`.
 
-At this point the site already works **read-only**: ladder, scores, history and picks all come from the JSON files. The steps below add logins.
+### How results get onto the site
+
+Squiggle doesn't let browsers on other websites read its API directly, so the page can't fetch results itself. Instead, the GitHub Action (`.github/workflows/update-results.yml`) runs `scripts/fetch-results.mjs`:
+
+- **When it runs:** on every push, every 15 minutes from March to September, and once a day in the off-season.
+- **What it does:** downloads each season's games, saves them as `data/games-<year>.json` and republishes the site.
+- **Delays:** ladders can be up to about 15–20 minutes behind live scores, and GitHub sometimes runs scheduled jobs a little late.
+- **Running it by hand:** to force an update, go to **Actions → Update results and publish site → Run workflow**.
+- **Off-season pause:** GitHub pauses scheduled workflows in repositories with no commits for 60 days, and emails you first. If that happens over summer, open the Actions tab and click **Enable workflow** before Round 1. Any commit, such as editing the config, also counts as activity.
+
+At this point the site already works **read-only**. The steps below add logins.
 
 ## 2. Set up Firebase for logins (about 15 min, free)
 
@@ -79,7 +93,7 @@ Admins are listed in **two** places, and both must match:
   "predictors": [
     { "name": "John", "username": "john", "picks": ["West Coast", "Fremantle", "..."] }
   ],
-  "finalLadder": ["optional: 18 clubs in finishing order, used only if the results feed is unreachable"]
+  "finalLadder": ["optional: 18 clubs in finishing order, used only if data/games-<year>.json is missing"]
 }
 ```
 
@@ -90,4 +104,3 @@ Admins are listed in **two** places, and both must match:
 - The final ladder used for scoring is the **home-and-away** ladder. Finals don't count.
 - Opening Round games are counted as part of Round 1.
 - Ladder order is points, then percentage.
-- Results are cached in each browser for 5 minutes during the season.

@@ -1,7 +1,7 @@
 import { CONFIG } from "./config.js";
 import { TEAM_NAMES, team, canonical } from "./teams.js";
 import * as S from "./scoring.js";
-import { fetchGames } from "./squiggle.js";
+import { fetchGames } from "./results.js";
 import * as B from "./backend.js";
 
 const $ = s => document.querySelector(s);
@@ -183,8 +183,8 @@ function stopPlay() {
 
 function renderBanner(entry, v) {
   const parts = [];
-  if (entry.gamesError && !v.staticLadder) {
-    parts.push(`<div class="banner">Couldn't reach the AFL results feed just now. ${v.mode === "preseason" ? "" : "Showing the last saved results."} Try refreshing in a minute.</div>`);
+  if (entry.gamesError && !v.staticLadder && !(entry.live && v.mode === "preseason")) {
+    parts.push(`<div class="banner">AFL results for ${entry.year} haven't been published to the site yet. They update automatically every 15 minutes during the season.</div>`);
   }
   if (entry.live && v.mode === "preseason") {
     const lock = entry.season.lockAt;

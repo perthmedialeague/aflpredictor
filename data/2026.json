@@ -169,5 +169,26 @@
         "Richmond"
       ]
     }
-  ]
+  ],
+  "finalLadder": [
+    "Fremantle",
+    "Sydney",
+    "Brisbane Lions",
+    "Hawthorn",
+    "Geelong",
+    "Adelaide",
+    "Melbourne",
+    "Western Bulldogs",
+    "Collingwood",
+    "Carlton",
+    "St Kilda",
+    "Greater Western Sydney",
+    "Gold Coast",
+    "North Melbourne",
+    "Port Adelaide",
+    "West Coast",
+    "Richmond",
+    "Essendon"
+  ],
+  "_finalLadderNote": "Official 2026 home-and-away ladder (Squiggle). Used only if data/games-2026.json is missing."
 }
