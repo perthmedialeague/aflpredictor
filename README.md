@@ -33,14 +33,15 @@ firestore.rules     database security rules
    - Drag and drop works via **Add file → Upload files**. On a Mac, press `Cmd+Shift+.` in Finder to show hidden folders so you can drag `.github` too.
    - If it doesn't go up, create the file by hand: **Add file → Create new file**, name it `.github/workflows/update-results.yml`, and paste in the contents.
 3. Go to **Settings → Pages → Build and deployment → Source** and choose **GitHub Actions** (not "Deploy from a branch").
-4. Go to the **Actions** tab, choose **Update results and publish site**, then click **Run workflow**. After about a minute the site is live at `https://<your-username>.github.io/ladder-prophets/`.
+4. **Add a contact email for Squiggle (required):** go to **Settings → Secrets and variables → Actions → Variables tab → New repository variable**. Set the name to `SQUIGGLE_CONTACT` and the value to an email address Squiggle can reach you at. Squiggle silently blocks automated requests without one. The address stays in your GitHub settings, not in the public code.
+5. Go to the **Actions** tab, choose **Update results and publish site**, then click **Run workflow**. After about a minute the site is live at `https://<your-username>.github.io/ladder-prophets/`.
 
 ### How results get onto the site
 
 Squiggle doesn't let browsers on other websites read its API directly, so the page can't fetch results itself. Instead, the GitHub Action (`.github/workflows/update-results.yml`) runs `scripts/fetch-results.mjs`:
 
 - **When it runs:** on every push, every 15 minutes from March to September, and once a day in the off-season.
-- **What it does:** downloads each season's games, saves them as `data/games-<year>.json` and republishes the site.
+- **What it does:** downloads the current season's games, saves them as `data/games-<year>.json` and republishes the site. Finished seasons already saved in `data/` (such as 2026) aren't downloaded again.
 - **Delays:** ladders can be up to about 15–20 minutes behind live scores, and GitHub sometimes runs scheduled jobs a little late.
 - **Running it by hand:** to force an update, go to **Actions → Update results and publish site → Run workflow**.
 - **Off-season pause:** GitHub pauses scheduled workflows in repositories with no commits for 60 days, and emails you first. If that happens over summer, open the Actions tab and click **Enable workflow** before Round 1. Any commit, such as editing the config, also counts as activity.

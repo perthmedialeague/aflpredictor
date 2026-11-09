@@ -8,5 +8,7 @@ export async function fetchGames(year) {
   const res = await fetch(`data/games-${year}.json`, { cache: "no-cache" });
   if (!res.ok) throw new Error(`No results file for ${year} yet`);
   const data = await res.json();
+  // Compact format: { cols: [...], rows: [[...], ...] }
+  if (data.cols && data.rows) return data.rows.map(r => Object.fromEntries(data.cols.map((c, i) => [c, r[i]])));
   return data.games || [];
 }

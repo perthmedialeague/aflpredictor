@@ -35,6 +35,8 @@ jobs:
 
       - name: Fetch AFL results from Squiggle
         run: node scripts/fetch-results.mjs
+        env:
+          SQUIGGLE_CONTACT: ${{ vars.SQUIGGLE_CONTACT }}
         continue-on-error: true   # still publish the site if Squiggle is briefly down
 
       - uses: actions/configure-pages@v5
