@@ -1,0 +1,173 @@
+{
+  "year": 2026,
+  "predictors": [
+    {
+      "name": "Brenden",
+      "username": "brenden",
+      "picks": [
+        "Brisbane Lions",
+        "Gold Coast",
+        "Hawthorn",
+        "Fremantle",
+        "Geelong",
+        "St Kilda",
+        "Sydney",
+        "Adelaide",
+        "Greater Western Sydney",
+        "Collingwood",
+        "Western Bulldogs",
+        "Melbourne",
+        "Port Adelaide",
+        "Carlton",
+        "Richmond",
+        "West Coast",
+        "North Melbourne",
+        "Essendon"
+      ]
+    },
+    {
+      "name": "John",
+      "username": "john",
+      "picks": [
+        "Geelong",
+        "Greater Western Sydney",
+        "Adelaide",
+        "Brisbane Lions",
+        "Hawthorn",
+        "Gold Coast",
+        "Sydney",
+        "Collingwood",
+        "Fremantle",
+        "St Kilda",
+        "Western Bulldogs",
+        "Richmond",
+        "Port Adelaide",
+        "West Coast",
+        "Carlton",
+        "Melbourne",
+        "North Melbourne",
+        "Essendon"
+      ]
+    },
+    {
+      "name": "Marc",
+      "username": "marc",
+      "picks": [
+        "Gold Coast",
+        "Sydney",
+        "Geelong",
+        "Brisbane Lions",
+        "Fremantle",
+        "Collingwood",
+        "Adelaide",
+        "Hawthorn",
+        "Western Bulldogs",
+        "Greater Western Sydney",
+        "St Kilda",
+        "Essendon",
+        "Richmond",
+        "Carlton",
+        "Port Adelaide",
+        "West Coast",
+        "North Melbourne",
+        "Melbourne"
+      ]
+    },
+    {
+      "name": "Brett",
+      "username": "brett",
+      "picks": [
+        "Gold Coast",
+        "Geelong",
+        "Adelaide",
+        "Brisbane Lions",
+        "Fremantle",
+        "Hawthorn",
+        "Collingwood",
+        "Western Bulldogs",
+        "Sydney",
+        "Port Adelaide",
+        "Carlton",
+        "Greater Western Sydney",
+        "Essendon",
+        "St Kilda",
+        "West Coast",
+        "Richmond",
+        "North Melbourne",
+        "Melbourne"
+      ]
+    },
+    {
+      "name": "Marty",
+      "username": "marty",
+      "picks": [
+        "Fremantle",
+        "Gold Coast",
+        "Adelaide",
+        "Western Bulldogs",
+        "Brisbane Lions",
+        "St Kilda",
+        "Geelong",
+        "Sydney",
+        "Hawthorn",
+        "Collingwood",
+        "Greater Western Sydney",
+        "Richmond",
+        "West Coast",
+        "Essendon",
+        "North Melbourne",
+        "Melbourne",
+        "Carlton",
+        "Port Adelaide"
+      ]
+    },
+    {
+      "name": "Alex",
+      "username": "alex",
+      "picks": [
+        "Brisbane Lions",
+        "Gold Coast",
+        "Geelong",
+        "Collingwood",
+        "Greater Western Sydney",
+        "Adelaide",
+        "Hawthorn",
+        "Sydney",
+        "Western Bulldogs",
+        "Fremantle",
+        "Port Adelaide",
+        "North Melbourne",
+        "West Coast",
+        "Essendon",
+        "Melbourne",
+        "St Kilda",
+        "Carlton",
+        "Richmond"
+      ]
+    },
+    {
+      "name": "Paddy",
+      "username": "paddy",
+      "picks": [
+        "Brisbane Lions",
+        "Geelong",
+        "Greater Western Sydney",
+        "Collingwood",
+        "Gold Coast",
+        "Adelaide",
+        "Fremantle",
+        "Hawthorn",
+        "Western Bulldogs",
+        "Sydney",
+        "Essendon",
+        "North Melbourne",
+        "St Kilda",
+        "West Coast",
+        "Carlton",
+        "Port Adelaide",
+        "Melbourne",
+        "Richmond"
+      ]
+    }
+  ]
+}

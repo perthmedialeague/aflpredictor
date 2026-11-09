@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ladder Predictor</title>
+  <meta name="description" content="Season-long AFL ladder prediction competition">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><ellipse cx='16' cy='16' rx='14' ry='9' transform='rotate(-35 16 16)' fill='%23b4372f'/><path d='M10 20 22 12' stroke='white' stroke-width='1.5'/></svg>">
+</head>
+<body>
+  <header class="masthead">
+    <div class="wrap masthead-inner">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <div>
+          <h1 id="site-title">Ladder Predictor</h1>
+          <p class="tagline">Lowest score wins. Every spot you're out costs a point.</p>
+        </div>
+      </div>
+      <div class="account" id="account"></div>
+    </div>
+    <nav class="wrap seasonbar" aria-label="Season">
+      <div class="tabs" id="season-tabs" role="tablist"></div>
+    </nav>
+  </header>
+
+  <div class="wrap" id="banner-slot"></div>
+
+  <section class="wrap" aria-label="Round">
+    <div class="roundbar" id="roundbar">
+      <div class="rb-label">
+        <span class="rb-kicker" id="rb-kicker">Ladder as at</span>
+        <strong id="rb-title">Pre-season</strong>
+      </div>
+      <div class="rb-controls">
+        <button type="button" class="rb-btn" id="rb-prev" aria-label="Previous round">◀</button>
+        <div class="rb-track">
+          <input type="range" id="round-slider" min="1" max="1" step="1" value="1" aria-label="Round">
+          <div class="rb-ticks" id="rb-ticks" aria-hidden="true"></div>
+        </div>
+        <button type="button" class="rb-btn" id="rb-next" aria-label="Next round">▶</button>
+        <button type="button" class="rb-btn rb-play" id="rb-play" aria-label="Play through the season">▶ Play</button>
+      </div>
+    </div>
+  </section>
+
+  <main class="wrap layout">
+    <section class="col-main">
+      <article class="card">
+        <header class="card-head">
+          <h2>The Predictors</h2>
+          <p class="card-sub" id="predictor-sub"></p>
+        </header>
+        <div class="table-scroll">
+          <table class="predictors" id="predictor-table">
+            <thead>
+              <tr>
+                <th class="num" scope="col">#</th>
+                <th scope="col">Name</th>
+                <th class="num" scope="col"><span class="lg">Total points</span><span class="sm">Pts</span></th>
+                <th scope="col"><span class="lg">Best guess</span><span class="sm">Best</span></th>
+                <th scope="col"><span class="lg">Worst guess</span><span class="sm">Worst</span></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="hint">Click a name to see every pick.</p>
+      </article>
+
+      <article class="card" id="race-card" hidden>
+        <header class="card-head">
+          <h2>Season Race</h2>
+          <p class="card-sub">Total points after each round. Lower is better, so the leader sits at the bottom.</p>
+        </header>
+        <div class="chart" id="race-chart"></div>
+        <div class="legend" id="race-legend"></div>
+      </article>
+
+      <article class="card">
+        <header class="card-head">
+          <h2>Everyone's Picks</h2>
+          <p class="card-sub" id="matrix-sub">Each column is one predictor's ladder.</p>
+        </header>
+        <div class="table-scroll">
+          <table class="matrix" id="matrix"></table>
+        </div>
+      </article>
+    </section>
+
+    <aside class="col-side">
+      <article class="card ladder-card">
+        <header class="card-head">
+          <h2>AFL Ladder</h2>
+          <p class="card-sub" id="ladder-sub"></p>
+        </header>
+        <table class="ladder" id="afl-ladder">
+          <thead>
+            <tr><th class="num" scope="col">#</th><th scope="col"><span class="sr">Change</span></th><th scope="col">Club</th><th class="num" scope="col">P</th><th class="num" scope="col">Pts</th><th class="num" scope="col">%</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <p class="source">Results via <a href="https://squiggle.com.au" target="_blank" rel="noopener">Squiggle</a></p>
+      </article>
+    </aside>
+  </main>
+
+  <footer class="wrap foot" id="foot"></footer>
+
+  <!-- Login -->
+  <dialog id="login-dialog" class="modal">
+    <form method="dialog" id="login-form">
+      <h2>Log in to edit your picks</h2>
+      <label>Username <input name="username" autocomplete="username" required></label>
+      <label>Password <input name="password" type="password" autocomplete="current-password" required></label>
+      <p class="form-error" id="login-error" role="alert"></p>
+      <div class="actions">
+        <button type="button" class="btn ghost" data-close>Cancel</button>
+        <button type="submit" class="btn primary">Log in</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Picks editor -->
+  <dialog id="editor-dialog" class="modal wide">
+    <div class="editor">
+      <header class="editor-head">
+        <div>
+          <h2 id="editor-title">My picks</h2>
+          <p class="card-sub" id="editor-lock"></p>
+        </div>
+        <button type="button" class="icon-btn" data-close aria-label="Close">✕</button>
+      </header>
+      <div class="admin-tools" id="admin-tools" hidden>
+        <label>Editing <select id="editor-who"></select></label>
+        <label>Display name <input id="editor-name" maxlength="30"></label>
+        <label>Picks lock at <input type="datetime-local" id="lock-input"></label>
+        <button type="button" class="btn small" id="lock-save">Save lock time</button>
+      </div>
+      <p class="hint">Drag teams into order, or use the arrows. Top = premiers-elect, bottom = wooden spoon.</p>
+      <ol class="pick-list" id="pick-list"></ol>
+      <p class="form-error" id="editor-error" role="alert"></p>
+      <div class="actions">
+        <button type="button" class="btn ghost" id="pw-toggle">Change password</button>
+        <span class="spacer"></span>
+        <span class="saved-note" id="saved-note"></span>
+        <button type="button" class="btn primary" id="picks-save">Save picks</button>
+      </div>
+      <form id="pw-form" class="pw-form" hidden>
+        <label>Current password <input type="password" name="current" autocomplete="current-password" required></label>
+        <label>New password <input type="password" name="next" autocomplete="new-password" minlength="6" required></label>
+        <button type="submit" class="btn small">Update password</button>
+        <p class="form-error" id="pw-error" role="alert"></p>
+      </form>
+    </div>
+  </dialog>
+
+  <div class="tooltip" id="tooltip" role="tooltip" hidden></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js" defer></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

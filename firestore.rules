@@ -1,0 +1,48 @@
+rules_version = '2';
+
+// Paste this into Firebase console → Firestore Database → Rules, then Publish.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    // Login "john" is the Firebase user john@example.com → username "john".
+    function username() { return request.auth.token.email.split('@')[0].lower(); }
+    // Keep in sync with CONFIG.admins in js/config.js
+    function isAdmin() { return signedIn() && username() in ['john']; }
+
+    function validPicks() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['name', 'picks', 'updatedAt', 'updatedBy'])
+        && d.picks is list
+        && d.picks.size() == 18
+        && d.picks.toSet().size() == 18
+        && d.picks.hasOnly([
+          'Adelaide', 'Brisbane Lions', 'Carlton', 'Collingwood', 'Essendon', 'Fremantle',
+          'Geelong', 'Gold Coast', 'Greater Western Sydney', 'Hawthorn', 'Melbourne',
+          'North Melbourne', 'Port Adelaide', 'Richmond', 'St Kilda', 'Sydney',
+          'West Coast', 'Western Bulldogs'])
+        && d.name is string && d.name.size() <= 30
+        && d.updatedAt == request.time
+        && d.updatedBy == username();
+    }
+
+    match /seasons/{year} {
+      // Season settings (lock time): everyone reads, only admins write.
+      allow read: if true;
+      allow write: if isAdmin();
+
+      match /picks/{user} {
+        allow read: if true;
+        // Players may only write their OWN picks, and only before the lock time.
+        // Admins can correct anyone's picks at any time.
+        allow create, update: if validPicks() && (
+          isAdmin() ||
+          (signedIn()
+            && username() == user
+            && request.time < get(/databases/$(database)/documents/seasons/$(year)).data.lockAt)
+        );
+        allow delete: if isAdmin();
+      }
+    }
+  }
+}
