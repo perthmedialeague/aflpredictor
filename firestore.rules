@@ -43,6 +43,90 @@ service cloud.firestore {
         );
         allow delete: if isAdmin();
       }
+
+      // ── Weekly five picks ─────────────────────────────────────────────
+      // meta/fixture = { starts: {gameId: Timestamp}, roundStarts: {round: Timestamp} }
+      // Written automatically by the site whenever an admin visits and the fixture has changed.
+      match /meta/{doc} {
+        allow read: if true;
+        allow write: if isAdmin();
+      }
+
+      // weekly/{round}_{username} = { user, round, p1..p5 }, each pick { game, market, side, at }
+      match /weekly/{docId} {
+        // Your own picks: always. Everyone else's: only once the round's first game has started.
+        allow read: if isAdmin()
+          || (signedIn() && resource.data.user == username())
+          || request.time >= fixture(year).roundStarts[string(resource.data.round)];
+        allow create, update: if isAdmin() || weeklyOk(year, docId);
+        allow delete: if isAdmin();
+      }
+    }
+
+    // ── Season predictions ─────────────────────────────────────────────
+    // seasons/{year}/predictions/{id} = { user, kind, text, keywords, team?, cond?, n?, createdAt, status, ... }
+    // Players add, edit and delete their own until the season lock. Only admins decide outcomes.
+    match /seasons/{year}/predictions/{pid} {
+      allow read: if true;
+      allow create: if isAdmin() || (predictionOk() && beforeLock(year)
+        && request.resource.data.createdAt == request.time);
+      allow update: if isAdmin() || (predictionOk() && beforeLock(year)
+        && resource.data.user == username()
+        && request.resource.data.createdAt == resource.data.createdAt);
+      allow delete: if isAdmin() || (signedIn() && resource.data.user == username() && beforeLock(year));
+    }
+
+    function beforeLock(year) {
+      return request.time < get(/databases/$(database)/documents/seasons/$(year)).data.lockAt;
+    }
+
+    function predictionOk() {
+      let d = request.resource.data;
+      return signedIn()
+        && d.user == username()
+        && d.keys().hasOnly(['user', 'kind', 'text', 'keywords', 'team', 'cond', 'n', 'createdAt', 'status'])
+        && d.status == 'pending'
+        && d.text is string && d.text.size() >= 4 && d.text.size() <= 200
+        && d.keywords is list && d.keywords.size() <= 8
+        && (d.kind == 'free'
+            || (d.kind == 'ladder' && d.team is string && d.n is int && d.n >= 0 && d.n <= 24
+                && d.cond in ['top', 'missTop', 'bottom', 'exact', 'winsAtLeast', 'winsAtMost']));
+    }
+
+    function fixture(year) {
+      return get(/databases/$(database)/documents/seasons/$(year)/meta/fixture).data;
+    }
+
+    // Keep in sync with CONFIG.weeklyPlayers in js/config.js
+    function weeklyPlayers() { return ['brenden', 'john', 'marc', 'brett', 'marty']; }
+
+    function weeklyOk(year, docId) {
+      let n = request.resource.data;
+      return signedIn()
+        && username() in weeklyPlayers()
+        && n.user == username()
+        && n.round is int
+        && docId == string(n.round) + '_' + username()
+        && n.keys().hasOnly(['user', 'round', 'p1', 'p2', 'p3', 'p4', 'p5'])
+        && (resource == null || resource.data.round == n.round)
+        && slotOk(year, 'p1') && slotOk(year, 'p2') && slotOk(year, 'p3')
+        && slotOk(year, 'p4') && slotOk(year, 'p5');
+    }
+
+    // A slot may stay exactly as it was, or change only if neither the old nor the new
+    // game has started. A new or changed pick must carry the server's time in `at`.
+    function slotOk(year, s) {
+      let n = request.resource.data;
+      let o = resource == null ? {} : resource.data;
+      return ((s in n) == (s in o) && (!(s in n) || n[s] == o[s]))
+        || ((!(s in o) || fixture(year).starts[string(o[s].game)] > request.time)
+            && (!(s in n) || (
+                 n[s].keys().hasOnly(['game', 'market', 'side', 'at'])
+                 && n[s].game is int
+                 && n[s].at == request.time
+                 && ((n[s].market == 'total' && n[s].side in ['over', 'under'])
+                     || (n[s].market in ['h2h', 'line'] && n[s].side in ['home', 'away']))
+                 && fixture(year).starts[string(n[s].game)] > request.time)));
     }
   }
 }

@@ -7,6 +7,8 @@ A static website for a season-long AFL ladder-prediction competition between fri
 - **Week by week:** pick any round to see the standings as at that point. The Season Race chart tracks everyone's totals.
 - **Password-protected picks:** each player logs in with their own username and password and can change only their own ladder until Round 1 starts. The lock is enforced by the database, not just by the page.
 - **Past seasons:** each season lives in its own `data/<year>.json` file.
+- **Season Predictions:** a third page (**Predictions**) where everyone adds up to 10 bold calls for the year, until the Round 1 lock. Ladder and wins predictions ("Freo finish top 4", "West Coast win 8+ games") check themselves from the results. Anything else ("Clarko gets sacked") is searched in the news daily, and an admin confirms it with one click, optionally attaching the article as evidence. Most predictions that came true wins.
+- **Weekly Picks:** a second competition on its own page (**Weekly picks** at the top right). Each round, everyone makes five picks against real bookmaker odds: head to head, line or total points, at most one per game. A winning pick scores its odds (e.g. 2.40), a loss scores 0, and a push (a draw, or a result exactly on the line) scores 1. Highest season total wins.
 
 ```
 index.html          page
@@ -15,6 +17,12 @@ js/config.js        ← the settings you edit
 js/app.js           page logic
 js/scoring.js       ladder + scoring maths
 js/results.js       loads data/games-<year>.json
+js/weekly.js        weekly picks scoring (pure functions)
+js/picks.js         Weekly Picks page
+scripts/fetch-odds.mjs      downloads odds from The Odds API (run by GitHub Actions)
+scripts/fetch-news.mjs      searches Google News for season predictions (run by GitHub Actions)
+js/bold.js          season predictions: auto-checking, keywords, news matching
+js/predictions.js   Predictions page
 scripts/fetch-results.mjs   downloads results from Squiggle (run by GitHub Actions)
 .github/workflows/  the scheduled results update + Pages deploy
 js/backend.js       Firebase logins + stored picks
@@ -71,6 +79,45 @@ At this point the site already works **read-only**. The steps below add logins.
 4. At the lock time the database starts refusing changes from players automatically. As admin you can still correct anyone's picks, add a late predictor with **+ Add a predictor…**, or move the lock time.
 
 > Picks saved through the site are stored in Firebase and take priority over `data/2027.json`. The JSON file is just the starting point.
+
+## 4. Turn on Weekly Picks (about 5 min)
+
+1. **Get a free odds key:** sign up at <https://the-odds-api.com> and copy your API key from the email.
+2. **Add the key to GitHub:** go to **Settings → Secrets and variables → Actions → Secrets tab → New repository secret**, set the name to `ODDS_API_KEY` and paste the key as the value. Secrets are hidden, even from people who can see the repository.
+3. **Let the job save odds:** go to **Settings → Actions → General → Workflow permissions**, choose **Read and write permissions** and click **Save**. The job needs this to save the odds history.
+4. **Update the database rules:** paste the updated `firestore.rules` into Firebase (**Firestore → Rules → Publish**).
+5. **Choose the players:** Weekly Picks is set to Brenden, John, Marc, Brett and Marty. To change the list, edit `weeklyPlayers` in `js/config.js` **and** `weeklyPlayers()` in `firestore.rules`, then republish the rules.
+6. **Sync the kick-off times:** log in as `john` and open **Weekly picks** once. The site copies the fixture's kick-off times into the database, which is what locks each pick when its game starts. It re-checks every time an admin opens the page, so if the AFL moves a game, opening the page once afterwards keeps the locks right.
+
+### How it works
+
+- **Odds:** the GitHub job fetches odds when a game starts within the next 8 days, at most every 6 hours. That's about 360 credits a month in season, so check your plan's monthly allowance. To change the interval, add a repository **variable** `ODDS_REFRESH_HOURS`. Odds are the median across Australian bookmakers. Each update is saved to `data/odds-<year>.json`, which the job commits back to the repository so the history is kept.
+- **Your price:** each pick is priced at the odds showing when you saved it. The price comes from the saved history and the server's clock, so nobody can claim a better price later.
+- **Locks:** each pick locks when its game starts, and the database refuses changes after that, not just the page. You can change unstarted picks as often as you like. Changing one pick doesn't affect the price of the others.
+- **Seeing other people's picks:** they're hidden until the round's first bounce, then everyone's picks for the round are shown. This is enforced by the database for direct reads.
+- **Results:** picks are settled automatically from the final scores.
+- **Player props:** not included. The odds feed doesn't provide the player stats needed to settle them.
+
+### Checking the database rules
+
+The weekly picks rules couldn't be run against Firebase's emulator before release. To check them, open **Firestore → Rules → Rules Playground** and simulate the following, with authentication set to a user whose email is `marc@example.com`:
+
+| Simulate | Path | Data | Expected |
+|---|---|---|---|
+| **set** | `seasons/2027/weekly/2_marc` | `{"user":"marc","round":2,"p1":{"game":<an upcoming game id>,"market":"h2h","side":"home","at":<request.time>}}` | allowed |
+| **set** | the same path | the user changed to `"john"` | denied |
+| **get** | `seasons/2027/weekly/2_brenden` | (before Round 2 starts) | denied |
+
+## 5. Season Predictions
+
+There's nothing extra to set up beyond publishing the updated `firestore.rules`.
+
+- **Adding predictions:** players log in on the **Predictions** page and add, edit or delete their own until the season lock time (the same one as the ladder comp). Each person can make 10, which you can change with `predictionsPerPerson` in `js/config.js`.
+- **Two kinds:**
+  - **Ladder or wins:** pick a club and a condition (top N, miss the top N, bottom N, exactly Nth, at least or at most N wins). These are marked automatically. During the season they show *On track* or *Off track*. Positions are decided when the home-and-away season ends. Win targets are decided as soon as they're reached or become impossible.
+  - **Anything:** free text plus a few search words, which are filled in for you. Once a day the GitHub job searches Google News for each undecided prediction. It keeps headlines containing at least two of the search words and saves them to `data/news-<year>.json`. No API key is needed.
+- **Confirming:** admins see **✓ Came true / ✗ Didn't happen** buttons on every prediction, plus **Came true: use this** next to each news match to attach it as evidence. **Reset** undoes a decision. Admins can also override automatic results if needed.
+- **News search frequency:** the job searches about once a day. To change it, set a repository variable `NEWS_REFRESH_HOURS`.
 
 ## Admins
 

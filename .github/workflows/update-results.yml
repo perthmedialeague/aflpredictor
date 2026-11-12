@@ -1,7 +1,11 @@
 name: Update results and publish site
 
-# Fetches the latest AFL results from Squiggle and publishes the site to GitHub Pages.
+# Fetches the latest AFL results (Squiggle), odds (The Odds API) and news matches for season
+# predictions (Google News), then publishes the site.
 # Requires: Settings → Pages → Build and deployment → Source: "GitHub Actions".
+# Settings → Secrets and variables → Actions:
+#   Variables: SQUIGGLE_CONTACT = an email Squiggle can contact you at (required)
+#   Secrets:   ODDS_API_KEY     = your The Odds API key (needed for Weekly Picks odds)
 
 on:
   push:
@@ -12,13 +16,13 @@ on:
     - cron: "17 3 * 1,2,10,11,12 *"     # once a day in the off-season
 
 permissions:
-  contents: read
+  contents: write   # to save the odds history back to the repository
   pages: write
   id-token: write
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -35,9 +39,33 @@ jobs:
 
       - name: Fetch AFL results from Squiggle
         run: node scripts/fetch-results.mjs
+        continue-on-error: true   # still publish the site if Squiggle is briefly down
         env:
           SQUIGGLE_CONTACT: ${{ vars.SQUIGGLE_CONTACT }}
-        continue-on-error: true   # still publish the site if Squiggle is briefly down
+
+      - name: Fetch odds from The Odds API
+        run: node scripts/fetch-odds.mjs
+        continue-on-error: true
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          ODDS_REFRESH_HOURS: ${{ vars.ODDS_REFRESH_HOURS }}
+
+      - name: Search news for season predictions
+        run: node scripts/fetch-news.mjs
+        continue-on-error: true
+        env:
+          NEWS_REFRESH_HOURS: ${{ vars.NEWS_REFRESH_HOURS }}
+
+      - name: Save odds and news history
+        run: |
+          if [ -n "$(git status --porcelain -- 'data/odds-*.json' 'data/news-*.json')" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            for f in data/odds-*.json data/news-*.json; do [ -e "$f" ] && git add "$f"; done
+            git commit -m "Update odds and news [skip ci]"
+            git pull --rebase --autostash
+            git push
+          fi
 
       - uses: actions/configure-pages@v5
 

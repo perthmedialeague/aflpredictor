@@ -25,11 +25,17 @@
     </div>
     <nav class="wrap seasonbar" aria-label="Season">
       <div class="tabs" id="season-tabs" role="tablist"></div>
+      <div class="viewtabs" aria-label="Competition">
+        <a href="#/" data-view="ladder">Ladder comp</a>
+        <a href="#/picks" data-view="picks">Weekly picks</a>
+        <a href="#/predictions" data-view="predictions">Predictions</a>
+      </div>
     </nav>
   </header>
 
   <div class="wrap" id="banner-slot"></div>
 
+  <div id="view-ladder">
   <section class="wrap" aria-label="Round">
     <div class="roundbar" id="roundbar">
       <div class="rb-label">
@@ -108,6 +114,10 @@
       </article>
     </aside>
   </main>
+  </div>
+
+  <div class="wrap" id="view-picks" hidden></div>
+  <div class="wrap" id="view-predictions" hidden></div>
 
   <footer class="wrap foot" id="foot"></footer>
 

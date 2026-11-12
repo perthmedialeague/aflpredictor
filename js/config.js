@@ -11,6 +11,12 @@ export const CONFIG = {
   // Every season with a data/<year>.json file, newest first.
   seasons: [2027, 2026],
 
+  // Who plays the Weekly Picks comp (usernames). Must also match weeklyPlayers() in firestore.rules.
+  weeklyPlayers: ["brenden", "john", "marc", "brett", "marty"],
+
+  // How many season predictions each person can make.
+  predictionsPerPerson: 10,
+
   // Usernames that can edit anyone's picks and set the lock time.
   // Must also be listed in firestore.rules (isAdmin).
   admins: ["john"],

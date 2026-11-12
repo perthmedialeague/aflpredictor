@@ -3,6 +3,8 @@ import { TEAM_NAMES, team, canonical } from "./teams.js";
 import * as S from "./scoring.js";
 import { fetchGames } from "./results.js";
 import * as B from "./backend.js";
+import { renderPicks, invalidatePicks } from "./picks.js";
+import { renderPredictions, invalidatePredictions } from "./predictions.js";
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -18,7 +20,14 @@ const state = {
   round: {},          // selected round per year
   open: new Set(),    // expanded predictor rows
   user: null,
+  view: viewFromHash(),
 };
+
+function viewFromHash() {
+  if (/^#\/?picks/.test(location.hash)) return "picks";
+  if (/^#\/?predictions/.test(location.hash)) return "predictions";
+  return "ladder";
+}
 
 /* ───────────────────────── Data ───────────────────────── */
 
@@ -89,12 +98,43 @@ async function render() {
   document.title = CONFIG.siteTitle;
   $("#site-title").textContent = CONFIG.siteTitle;
   renderTabs();
+  renderViewTabs();
   renderAccount();
+  $("#view-ladder").hidden = state.view !== "ladder";
+  $("#view-picks").hidden = state.view !== "picks";
+  $("#view-predictions").hidden = state.view !== "predictions";
   let entry;
   try {
     entry = await loadSeason(state.year);
   } catch (e) {
     $("#banner-slot").innerHTML = `<div class="banner">${esc(e.message)}</div>`;
+    return;
+  }
+  if (state.view === "predictions") {
+    $("#banner-slot").innerHTML = "";
+    $("#foot").textContent = "";
+    const names = Object.fromEntries(entry.predictors.map(p => [p.username, p.name]));
+    await renderPredictions({
+      entry, user: state.user, isCurrent: entry.year === CONFIG.currentSeason,
+      users: entry.predictors.map(p => p.username), perPerson: CONFIG.predictionsPerPerson || 10,
+      nameOf: u => names[u] || u.charAt(0).toUpperCase() + u.slice(1),
+      openLogin: () => { $("#login-error").textContent = ""; $("#login-dialog").showModal(); },
+      h: { $, esc, dot, team, fmtDate },
+    });
+    return;
+  }
+  if (state.view === "picks") {
+    $("#banner-slot").innerHTML = "";
+    $("#foot").textContent = "";
+    const current = await loadSeason(CONFIG.currentSeason).catch(() => entry);
+    const users = CONFIG.weeklyPlayers || current.predictors.map(p => p.username);
+    const names = Object.fromEntries(current.predictors.map(p => [p.username, p.name]));
+    await renderPicks({
+      entry, user: state.user, isCurrent: entry.year === CONFIG.currentSeason, users,
+      nameOf: u => names[u] || u.charAt(0).toUpperCase() + u.slice(1),
+      openLogin: () => { $("#login-error").textContent = ""; $("#login-dialog").showModal(); },
+      h: { $, esc, dot, team, fmtDate },
+    });
     return;
   }
   const v = view(entry);
@@ -107,6 +147,14 @@ async function render() {
   renderLadder(entry, v);
   renderFooter(entry);
   renderAccount();
+}
+
+function renderViewTabs() {
+  document.querySelectorAll(".viewtabs a").forEach(a => {
+    const on = a.dataset.view === state.view;
+    a.classList.toggle("on", on);
+    a.setAttribute("aria-current", on ? "page" : "false");
+  });
 }
 
 function renderTabs() {
@@ -423,7 +471,7 @@ function renderAccount() {
   if (!B.enabled()) { box.innerHTML = ""; return; }
   if (state.user) {
     box.innerHTML = `<span>Logged in as <span class="who">${esc(B.usernameOf(state.user))}</span></span>
-      <button class="btn primary small" id="my-picks">${B.isAdmin(state.user) ? "Edit picks" : "My picks"}</button>
+      <button class="btn primary small" id="my-picks">${B.isAdmin(state.user) ? "Edit ladders" : "My ladder"}</button>
       <button class="btn small" id="logout">Log out</button>`;
     $("#my-picks").onclick = openEditor;
     $("#logout").onclick = async () => { await B.logout(); };
@@ -444,7 +492,7 @@ function setupDialogs() {
       await B.login(f.username.value, f.password.value);
       f.reset();
       $("#login-dialog").close();
-      openEditor();
+      if (state.view === "ladder") openEditor();
     } catch (err) {
       $("#login-error").textContent = /invalid|wrong|not-found|credential/i.test(err.code || err.message) ? "Username or password is incorrect." : (err.message || "Couldn't log in.");
     } finally { btn.disabled = false; }
@@ -576,6 +624,12 @@ const toLocalInput = d => new Date(d.getTime() - d.getTimezoneOffset() * 60000).
 
 setupDialogs();
 render();
-B.onUser(user => { state.user = user; renderAccount(); });
+B.onUser(user => {
+  const changed = B.usernameOf(user) !== B.usernameOf(state.user);
+  state.user = user;
+  renderAccount();
+  if (changed && state.view !== "ladder") { invalidatePicks(CONFIG.currentSeason); render(); }
+});
+addEventListener("hashchange", () => { state.view = viewFromHash(); stopPlay(); render(); });
 let resizeT;
-addEventListener("resize", () => { clearTimeout(resizeT); resizeT = setTimeout(() => { const e = state.cache[state.year]; if (e) { renderRace(e, view(e)); renderRoundBar(e, view(e)); } }, 150); });
+addEventListener("resize", () => { clearTimeout(resizeT); resizeT = setTimeout(() => { const e = state.cache[state.year]; if (e && state.view === "ladder") { renderRace(e, view(e)); renderRoundBar(e, view(e)); } }, 150); });

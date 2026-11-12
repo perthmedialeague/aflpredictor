@@ -1,0 +1,6 @@
+{
+  "name": "afl-ladder-predictor",
+  "private": true,
+  "type": "module",
+  "description": "Scripts run by GitHub Actions. The site itself needs no build step."
+}
